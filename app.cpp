@@ -488,9 +488,60 @@ class End : public Step{
 };
 
 
+class Analytics {
+private:
+    int flowStartedCount;
+    int flowCompletedCount;
+    std::unordered_map<std::string, int> screenSkippedCount;
+    std::unordered_map<std::string, int> errorScreenCount;
+    int totalErrors;
+    int totalCompletedFlows;
+
+public:
+    Analytics() : flowStartedCount(0), flowCompletedCount(0), totalErrors(0), totalCompletedFlows(0) {}
+
+    void flowStarted() {
+        flowStartedCount++;
+    }
+
+    void flowCompleted(bool hasErrors) {
+        flowCompletedCount++;
+        totalCompletedFlows++;
+
+        if (hasErrors) {
+            totalErrors++;
+        }
+    }
+
+    void screenSkipped(const std::string& screenName) {
+        screenSkippedCount[screenName]++;
+    }
+
+    void errorScreenDisplayed(const std::string& stepName) {
+        errorScreenCount[stepName]++;
+    }
+
+    void displayAnalytics() const {
+        std::cout << "Flow started count: " << flowStartedCount << std::endl;
+        std::cout << "Flow completed count: " << flowCompletedCount << std::endl;
+        std::cout << "Average number of errors per flow completed: " << (totalCompletedFlows > 0 ? static_cast<double>(totalErrors) / totalCompletedFlows : 0) << std::endl;
+
+        std::cout << "Screen skipped count:\n";
+        for (const auto& entry : screenSkippedCount) {
+            std::cout << entry.first << ": " << entry.second << std::endl;
+        }
+
+        std::cout << "Error screen count:\n";
+        for (const auto& entry : errorScreenCount) {
+            std::cout << entry.first << ": " << entry.second << std::endl;
+        }
+    }
+};
+
 class Flow{
 private:
     std::vector<Step*> steps; // Vector of Step pointers
+    Analytics analytics;
 
 public:
     Flow() {}
@@ -504,7 +555,16 @@ public:
         steps.push_back(step);
     }
 
+    Analytics& getAnalytics() {
+        return analytics;
+    }
+
+    const Analytics& getAnalytics() const {
+        return analytics;
+    }
+
     void executeFlow() {
+        // analytics.flowStarted(); // Increment flowStartedCount
         if (steps.empty()) {
             cout << "No steps available!" << endl;
             return;
@@ -523,11 +583,13 @@ public:
 
             if (choice > 0 && choice <= static_cast<int>(steps.size())) {
                 cout << "Selected Step: " << choice << endl;
-                if(steps[choice - 1]->getClassName() == "Display" || steps[choice - 1]->getClassName() == "Calculus") {
-                    steps[choice - 1]->getFlow(steps);
-                }
+                // if(steps[choice - 1]->getClassName() == "Display" || steps[choice - 1]->getClassName() == "Calculus") {
+                //     steps[choice - 1]->getFlow(steps);
+                // }
                 steps[choice - 1]->inputAttributes();
                 steps[choice - 1]->displayAttributes();
+
+                //analytics.screenSkipped(steps[choice - 1]->getClassName()); // Increment screenSkippedCount
                
             } else {
                 cout << "Invalid choice!" << endl;
@@ -544,8 +606,12 @@ public:
             }
 
         } while (true); // Loop indefinitely until 'n' or 'N' is entered
+
+        analytics.flowCompleted(false); // Assuming no errors for now
+        analytics.displayAnalytics(); // Display analytics before exiting
     }
 };
+
 
 int main() {
 
@@ -562,21 +628,24 @@ int main() {
     Output* step9 = new Output();
     End* step10 = new End();
 
-    Flow flow1;
+    // Flow flow1;
 
-    flow1.addStep(step1);
-    flow1.addStep(step2);
-    flow1.addStep(step3);
-    flow1.addStep(step4);
-    flow1.addStep(step5);
-    flow1.addStep(step6);
-    flow1.addStep(step7);
-    flow1.addStep(step8);
-    flow1.addStep(step9);
-    flow1.addStep(step10);
+    // flow1.addStep(step1);
+    // flow1.addStep(step2);
+    // flow1.addStep(step3);
+    // flow1.addStep(step4);
+    // flow1.addStep(step5);
+    // flow1.addStep(step6);
+    // flow1.addStep(step7);
+    // flow1.addStep(step8);
+    // flow1.addStep(step9);
+    // flow1.addStep(step10);
 
-    // Execute the predefined flow (Flow1)
-    flow1.executeFlow();
+    // // Execute the predefined flow (Flow1)
+    // flow1.executeFlow();
+
+    //  // Display analytics for Flow1
+    // flow1.getAnalytics().displayAnalytics();
 
     // Additional flows customized by users
     std::vector<Flow> customizedFlows;
@@ -658,6 +727,12 @@ int main() {
 
         // Execute custom flow
         customFlow.executeFlow();
+
+       // Display analytics for customized flows
+        for (const Flow& customFlow : customizedFlows) {
+            customFlow.getAnalytics().displayAnalytics();
+        }
+
 
         // Store the custom flow in the vector of customized flows
         customizedFlows.push_back(customFlow);

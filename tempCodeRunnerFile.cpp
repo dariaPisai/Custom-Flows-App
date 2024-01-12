@@ -1,0 +1,1 @@
+analytics.flowStarted(); // Increment flowStartedCount
