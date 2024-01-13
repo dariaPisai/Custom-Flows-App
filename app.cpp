@@ -1,11 +1,18 @@
 #include<iostream>
 #include<vector>
 #include<string>
+#include<typeinfo>
+#include<algorithm>
+#include<cctype>
+#include<fstream>
 
 
 using namespace std;
 
 class Step {
+private:
+int countErr = 0;
+
 public:
     std::string type;
     string className = "Step";
@@ -28,6 +35,17 @@ public:
 
     virtual void display() = 0;
 
+    int getcountErr() {
+        return countErr;
+    }
+
+    void displayErrors(){
+        cout << "\n\n ---------------------Error---------------------\n\n";
+        countErr ++;
+    };
+
+    virtual void addText() = 0;
+
     virtual ~Step() {}
 };
 
@@ -45,12 +63,32 @@ class Title: public Step{
     }
 
      void inputAttributes() override {
-        cout << "Title: ";
-        cin >> title;
-        cout << "Subtitle: ";
-        cin.ignore(); // Ignore newline left in buffer
-        getline(cin, subtitle);
+        try {
+            cout << "Title: ";
+            cin >> title;
+
+            if(typeid(title)!=typeid(string)){
+                throw "Title is string!";
+            }
+
+            cout << "Subtitle: ";
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+            getline(cin, subtitle);
+
+            if(typeid(subtitle)!=typeid(string)){
+                throw "Subtitle is string!";
+            }
+            
+        } catch (const string e) {
+            displayErrors();
+            cerr << "Error: " << e << endl;
+            //cin.clear(); // Clear the error flag
+            //cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard invalid input
+            // You can choose to rethrow the exception if needed
+            // throw; 
+        }
     }
+
 
     Title() {
         type = "Title";
@@ -64,6 +102,8 @@ class Title: public Step{
         cout << "Title: " << title << endl;
         cout << "Subtitle: " << subtitle << endl;
     }
+
+    void addText() override {}
 
     ~Title() {}
 
@@ -103,6 +143,8 @@ class Text: public Step{
         cout << "Copy: " << copy << endl;
     }
 
+    void addText() override {}
+
     ~Text() {}
 
 };
@@ -141,6 +183,8 @@ class Text_Input: public Step{
         cout << "Type: " << type << endl;
     }
 
+    void addText() override{}
+
     ~Text_Input() {}
 };
 
@@ -163,12 +207,26 @@ class Number_Input: public Step{
     }
 
     void inputAttributes() override {
-        cout << "Description: ";
-        cin >> description;
-        cout << "Number input: ";
-        cin.ignore(); // Ignore newline left in buffer
-        getline(cin, stringInput);
-        numberInput = stof(stringInput);
+       try {
+            std::cout << "Description: ";
+            std::cin >> description;
+
+            std::cout << "Number input: ";
+            std::cin >> stringInput;
+
+            size_t pos;
+            numberInput = std::stof(stringInput, &pos);
+
+            if (pos != stringInput.length()) {
+                throw std::invalid_argument("Invalid input. Please enter a valid number.");
+            }
+
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            displayErrors();
+        }
     }
 
      void displayAttributes() const override {
@@ -183,6 +241,8 @@ class Number_Input: public Step{
     void display() override {
         cout << "Type: " << type << endl;
     }
+
+    void addText() override {}
 
     ~Number_Input() {}
 };
@@ -289,6 +349,7 @@ class Calculus : public Step{
         
     }
 
+    void addText() override {}
     
 
     ~Calculus() {}
@@ -330,6 +391,8 @@ class Display: public Step{
         cout << "Step: " << step << endl;
     }
 
+    void addText() override{}
+
     ~Display() {}
 };
 
@@ -357,6 +420,49 @@ class Text_File : public Step{
         cout << "File Name: ";
         cin.ignore(); // Ignore newline left in buffer
         getline(cin, fileName);
+    }
+
+     void createFile() {
+        std::ofstream file(fileName);
+
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not create the file." << std::endl;
+            displayErrors();
+            return;
+        }
+
+        // Write the description to the file
+        file << "Description: " << description << std::endl;
+
+        file.close();
+        std::cout << "File created successfully." << std::endl;
+    }
+
+
+    void addText() override{
+        std::ofstream file(fileName);
+
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open the file for writing." << std::endl;
+            displayErrors();
+            return;
+        }
+
+        std::cout << "Enter text for the file (type 'exit' on a new line to finish):\n";
+        std::string line;
+
+        while (true) {
+            std::getline(std::cin, line);
+
+            if (line == "exit") {
+                break;
+            }
+
+            file << line << std::endl;
+        }
+
+        file.close();
+        std::cout << "Text added to the file." << std::endl;
     }
 
     void display() override {
@@ -404,6 +510,8 @@ class CSV_File : public Step{
         cout << "Description: " << description << endl;
         cout << "File Name: " << fileName << endl;
     }
+
+    void addText() override {}
 
     ~CSV_File() {}
 };
@@ -457,6 +565,8 @@ class Output : public Step{
         cout << "File Name: " << fileName << endl;
         cout << "Description: " << description << endl;
     }
+    
+    void addText() override {}
 
     ~Output() {}
 };
@@ -484,6 +594,8 @@ class End : public Step{
 
     void displayAttributes() const override {};
 
+    void addText() override{}
+
     ~End() {}
 };
 
@@ -496,9 +608,17 @@ private:
     std::unordered_map<std::string, int> errorScreenCount;
     int totalErrors;
     int totalCompletedFlows;
+    std::vector<Step*> steps; // Vector of Step pointers
+    
 
 public:
     Analytics() : flowStartedCount(0), flowCompletedCount(0), totalErrors(0), totalCompletedFlows(0) {}
+
+    void getFlow(vector<Step*> steps) {
+
+        this->steps = steps;
+
+    }
 
     void flowStarted() {
         flowStartedCount++;
@@ -517,14 +637,24 @@ public:
         screenSkippedCount[screenName]++;
     }
 
-    void errorScreenDisplayed(const std::string& stepName) {
-        errorScreenCount[stepName]++;
+    float errorScreenDisplayed() const{
+        int totalErrors = 0;
+        int numberSteps = 0;
+        for(auto const element: steps){
+           totalErrors += element->getcountErr();
+        }
+        
+        numberSteps = static_cast<int>(steps.size());
+        
+
+        return(float)(totalErrors/numberSteps);
+        
     }
 
     void displayAnalytics() const {
         std::cout << "Flow started count: " << flowStartedCount << std::endl;
         std::cout << "Flow completed count: " << flowCompletedCount << std::endl;
-        std::cout << "Average number of errors per flow completed: " << (totalCompletedFlows > 0 ? static_cast<double>(totalErrors) / totalCompletedFlows : 0) << std::endl;
+        std::cout << "Average number of errors per flow completed: " << errorScreenDisplayed() << std::endl;
 
         std::cout << "Screen skipped count:\n";
         for (const auto& entry : screenSkippedCount) {
@@ -589,6 +719,11 @@ public:
                 steps[choice - 1]->inputAttributes();
                 steps[choice - 1]->displayAttributes();
 
+                // if(steps[choice - 1]->getClassName() == "Text File") {
+            
+                //     steps[choice - 1]->addText();
+                // }
+
                 //analytics.screenSkipped(steps[choice - 1]->getClassName()); // Increment screenSkippedCount
                
             } else {
@@ -606,6 +741,8 @@ public:
             }
 
         } while (true); // Loop indefinitely until 'n' or 'N' is entered
+
+        analytics.getFlow(steps);
 
         analytics.flowCompleted(false); // Assuming no errors for now
         analytics.displayAnalytics(); // Display analytics before exiting
@@ -703,7 +840,13 @@ int main() {
                     newStep = new Display();
                     break;
                 case 7:
-                    newStep = new Text_File();
+                    {
+                        Text_File* textFile = new Text_File();
+                        textFile->createFile();
+                        textFile->addText();
+                        newStep = textFile;
+                    }
+                    // newStep = new Text_File();
                     break;
                 case 8:
                     newStep = new CSV_File();
