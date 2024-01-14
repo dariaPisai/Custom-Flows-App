@@ -199,6 +199,8 @@ class Text_Input: public Step{
     ~Text_Input() {}
 };
 
+//number input class
+
 class Number_Input: public Step{
 
     private:
@@ -257,6 +259,8 @@ class Number_Input: public Step{
 
     ~Number_Input() {}
 };
+
+//calculus class
 
 class Calculus : public Step{
 
@@ -366,6 +370,8 @@ class Calculus : public Step{
     ~Calculus() {}
 };
 
+//display class
+
 class Display: public Step{
 
     private: 
@@ -406,6 +412,8 @@ class Display: public Step{
 
     ~Display() {}
 };
+
+//text file class
 
 class Text_File : public Step{
 
@@ -483,6 +491,8 @@ class Text_File : public Step{
     ~Text_File() {}
 };
 
+//csv file class
+
 class CSV_File : public Step{
 
     private:
@@ -521,6 +531,8 @@ class CSV_File : public Step{
 
     ~CSV_File() {}
 };
+
+//output class
 
 class Output : public Step{
 
@@ -577,6 +589,8 @@ class Output : public Step{
     ~Output() {}
 };
 
+//end class
+
 class End : public Step{
 
     private:
@@ -604,6 +618,8 @@ class End : public Step{
 
     ~End() {}
 };
+
+//analytics class
 
 
 class Analytics {
@@ -675,6 +691,8 @@ public:
     }
 };
 
+//flow class
+
 class Flow{
 private:
     std::vector<Step*> steps; // Vector of Step pointers
@@ -741,10 +759,10 @@ public:
             if (character == 'y' || character == 'Y'){
                 continue;
             } else if (character == 'n' || character == 'N') {
-                break; // Exit loop if 'n' or 'N' is entered
+                break; 
             }
 
-        } while (true); // Loop indefinitely until 'n' or 'N' is entered
+        } while (true); 
 
         analytics.getFlow(steps);
 
