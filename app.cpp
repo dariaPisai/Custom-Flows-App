@@ -5,9 +5,14 @@
 #include<algorithm>
 #include<cctype>
 #include<fstream>
+#include<limits>
+#include <unordered_map>
 
 
 using namespace std;
+
+
+//main step class
 
 class Step {
 private:
@@ -49,6 +54,8 @@ public:
     virtual ~Step() {}
 };
 
+//title class, the user adds title and subtitle
+
 class Title: public Step{
 
     private:
@@ -72,7 +79,7 @@ class Title: public Step{
             }
 
             cout << "Subtitle: ";
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
             getline(cin, subtitle);
 
             if(typeid(subtitle)!=typeid(string)){
@@ -109,6 +116,9 @@ class Title: public Step{
 
 };
 
+
+//text class
+
 class Text: public Step{
 
     private:
@@ -130,7 +140,7 @@ class Text: public Step{
         cout << "Title: ";
         cin >> title;
         cout << "Copy: ";
-        cin.ignore(); // Ignore newline left in buffer
+        cin.ignore(); 
         getline(cin, copy);
     }
 
@@ -149,6 +159,7 @@ class Text: public Step{
 
 };
 
+//text input class
 class Text_Input: public Step{
 
     private:
@@ -170,7 +181,7 @@ class Text_Input: public Step{
         cout << "Description: ";
         cin >> description;
         cout << "Text Input: ";
-        cin.ignore(); // Ignore newline left in buffer
+        cin.ignore(); 
         getline(cin, textInput);
     }
 
@@ -388,7 +399,7 @@ class Display: public Step{
     }
 
     void displayAttributes() const override {
-        cout << "Step: " << step << endl;
+        cout << "\nStep: " << step << endl;
     }
 
     void addText() override{}
@@ -402,6 +413,8 @@ class Text_File : public Step{
     string description;
     string fileName;
     string className = "Text File";
+    string filePath;
+    ofstream fileStream;
 
     public:
 
@@ -423,46 +436,39 @@ class Text_File : public Step{
     }
 
      void createFile() {
-        std::ofstream file(fileName);
+        filePath = "files/" + fileName; // Assuming the files are in a directory named "files"
+        ofstream file_out(filePath.c_str());
 
-        if (!file.is_open()) {
-            std::cerr << "Error: Could not create the file." << std::endl;
-            displayErrors();
-            return;
+        // Check if the file was successfully created
+        if (!file_out) {
+            throw std::runtime_error("File could not be created");
         }
 
-        // Write the description to the file
-        file << "Description: " << description << std::endl;
+        // Write to the file
+        if (description != "") {
+            file_out << "Description: " << description << endl;
+        }
+        file_out << "File name: " << fileName << endl;
 
-        file.close();
-        std::cout << "File created successfully." << std::endl;
+        // Close the file
+        file_out.close();
     }
 
+    void addText() override {
+        ofstream file_out(filePath.c_str(), std::ios_base::app); // Open in append mode
 
-    void addText() override{
-        std::ofstream file(fileName);
-
-        if (!file.is_open()) {
-            std::cerr << "Error: Could not open the file for writing." << std::endl;
-            displayErrors();
-            return;
+        if (!file_out) {
+            throw std::runtime_error("File could not be opened for appending");
         }
 
-        std::cout << "Enter text for the file (type 'exit' on a new line to finish):\n";
-        std::string line;
+        cout << "Enter text for the file (type 'exit' on a new line to finish):\n";
+        string line;
 
-        while (true) {
-            std::getline(std::cin, line);
-
-            if (line == "exit") {
-                break;
-            }
-
-            file << line << std::endl;
+        while (getline(cin, line) && line != "exit") {
+            file_out << line << endl;
         }
 
-        file.close();
-        std::cout << "Text added to the file." << std::endl;
+        file_out.close();
     }
 
     void display() override {
@@ -652,6 +658,7 @@ public:
     }
 
     void displayAnalytics() const {
+        cout << "\n\n ---------------------Analytics---------------------\n\n" << endl;
         std::cout << "Flow started count: " << flowStartedCount << std::endl;
         std::cout << "Flow completed count: " << flowCompletedCount << std::endl;
         std::cout << "Average number of errors per flow completed: " << errorScreenDisplayed() << std::endl;
@@ -694,13 +701,14 @@ public:
     }
 
     void executeFlow() {
-        // analytics.flowStarted(); // Increment flowStartedCount
+        analytics.flowStarted(); // Increment flowStartedCount
         if (steps.empty()) {
             cout << "No steps available!" << endl;
             return;
         }
 
         do {
+            cout << "\n\n ---------------------Flow---------------------\n\n" << endl;
             cout << "Available steps:\n";
             for (size_t i = 0; i < steps.size(); ++i) {
                 cout << i + 1 << ". ";
@@ -708,6 +716,7 @@ public:
             }
 
             int choice;
+            cout << "\n" << endl;
             cout << "Choose a step (enter the step number): ";
             cin >> choice;
 
@@ -718,11 +727,6 @@ public:
                 // }
                 steps[choice - 1]->inputAttributes();
                 steps[choice - 1]->displayAttributes();
-
-                // if(steps[choice - 1]->getClassName() == "Text File") {
-            
-                //     steps[choice - 1]->addText();
-                // }
 
                 //analytics.screenSkipped(steps[choice - 1]->getClassName()); // Increment screenSkippedCount
                
@@ -752,7 +756,6 @@ public:
 
 int main() {
 
-    string userTitle, userSubtitle;
 
     Title* step1 = new Title();
     Text* step2 = new Text();
@@ -765,38 +768,24 @@ int main() {
     Output* step9 = new Output();
     End* step10 = new End();
 
-    // Flow flow1;
-
-    // flow1.addStep(step1);
-    // flow1.addStep(step2);
-    // flow1.addStep(step3);
-    // flow1.addStep(step4);
-    // flow1.addStep(step5);
-    // flow1.addStep(step6);
-    // flow1.addStep(step7);
-    // flow1.addStep(step8);
-    // flow1.addStep(step9);
-    // flow1.addStep(step10);
-
-    // // Execute the predefined flow (Flow1)
-    // flow1.executeFlow();
-
-    //  // Display analytics for Flow1
-    // flow1.getAnalytics().displayAnalytics();
-
     // Additional flows customized by users
     std::vector<Flow> customizedFlows;
+    std::vector<Step*> steps;
 
     int numCustomFlows;
+    cout << "---------------------Number of Flows---------------------\n\n" << endl;
     std::cout << "Enter the number of custom flows to create: ";
     std::cin >> numCustomFlows;
+    cout << "\n\n" << endl;
 
     for (int i = 0; i < numCustomFlows; ++i) {
         Flow customFlow;
 
         int numSteps;
+        cout << "---------------------Flow---------------------\n\n" << endl;
         std::cout << "Enter the number of steps for custom flow " << i + 1 << ": ";
         std::cin >> numSteps;
+        cout << "\n\n" << endl;
 
         std::cout << "Available steps:\n";
         std::cout << "1. Title\n";
@@ -808,7 +797,9 @@ int main() {
         std::cout << "7. Text File\n";
         std::cout << "8. CSV File\n";
         std::cout << "9. Output\n";
-        std::cout << "10. End\n";
+        std::cout << "10. End\n\n\n";
+
+        cout << "---------------------Step---------------------\n\n" << endl;
 
         for (int j = 0; j < numSteps; ++j) {
 
@@ -840,13 +831,7 @@ int main() {
                     newStep = new Display();
                     break;
                 case 7:
-                    {
-                        Text_File* textFile = new Text_File();
-                        textFile->createFile();
-                        textFile->addText();
-                        newStep = textFile;
-                    }
-                    // newStep = new Text_File();
+                    newStep = new Text_File();
                     break;
                 case 8:
                     newStep = new CSV_File();
@@ -871,29 +856,16 @@ int main() {
         // Execute custom flow
         customFlow.executeFlow();
 
-       // Display analytics for customized flows
+          // Display analytics for customized flows
         for (const Flow& customFlow : customizedFlows) {
             customFlow.getAnalytics().displayAnalytics();
         }
-
 
         // Store the custom flow in the vector of customized flows
         customizedFlows.push_back(customFlow);
 
     }
 
-
-    // Clean up memory
-    delete step1;
-    delete step2;
-    delete step3;
-    delete step4;
-    delete step5;
-    delete step6;
-    delete step7;
-    delete step8;
-    delete step9;
-    delete step10;
 
 return 0;
 
